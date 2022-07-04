@@ -51,10 +51,45 @@ class Login(generics.GenericAPIView):
         return Response({'token': token.key})
 
 #   POKEMON HANDLER
+@parser_classes([JSONParser])
 @renderer_classes([JSONRenderer])
-class PokemonViewSet(viewsets.ModelViewSet):
-    queryset = Pokemon.objects.all()
+class PokemonViewSet(generics.GenericAPIView):
     serializer_class = PokemonSerializer
+
+    def get(self, request,pk):
+        serializer_class = PokemonSerializer
+
+        try:
+            pokemon = Pokemon.objects.filter(pk=pk)
+        except User.DoesNotExist:
+            return Response({'error': 'Invalid Pokemon'})
+        serialized_obj = serializers.serialize('json', pokemon)
+
+        for item in json.loads(serialized_obj):
+            abs = set()
+            for it in json.loads(item['fields']['abilities']):
+                abs.add(it)
+            moves = set()
+            for it in json.loads(item['fields']['moves']):
+                moves.add(it)
+            types = set()
+            for it in json.loads(item['fields']['types']):
+                types.add(it)
+            result={
+                'id': pk,
+                'abilities': abs,
+                'capture_rate': item['fields']['capture_rate'],
+                'color': item['fields']['color'],
+                'flavor_text': item['fields']['flavor_text'],
+                'height': item['fields']['height'],
+                'moves': moves,
+                'name': [item['fields']['name']],
+                'sprites': Pokemon.objects.get(id=pk).sprites,
+                'stats':item['fields']['stats'],
+                'types':types,
+                'weight':item['fields']['weight']
+            }
+        return Response(result)
 
 #   POKEMON OWN
 @parser_classes([JSONParser])
@@ -198,25 +233,12 @@ class PokemonEdit(generics.GenericAPIView):
         except:
             return Response({'error':'Authorization required'})
 
-        nick_name = request.data['nick_name']
-
         try:
-            userpokemon = UserPokemon.objects.get(user_id=Token.objects.get(key=token_key).user_id,pk=pk)
+            userpokemon = UserPokemon.objects.get(pk=pk)
         except User.DoesNotExist:
             return Response({'error':'Invalid User'})
 
-        # serialized_obj = serializers.serialize('json', userpokemon)
-
-        userpokemon.nick_name = nick_name
         userpokemon.delete()
-
-        lastpoke = json.loads(serializers.serialize('json', [UserPokemon.objects.get(user_id=Token.objects.get(key=token_key).user_id,pk=pk)]))
-        result = {
-            'id': lastpoke[0]['pk'],
-            'nick_name': lastpoke[0]['fields']['nick_name'],
-            'is_party_member': lastpoke[0]['fields']['is_party_member'],
-            'specie': lastpoke[0]['fields']['specie']
-        }
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 #   POKEMON PARTY
@@ -355,7 +377,7 @@ class RegionsLocations(generics.GenericAPIView):
         regions = Region.objects.filter(pk=pk)
         serialized_obj = serializers.serialize('json', regions)
 
-        result = []
+
         for item in json.loads(serialized_obj):
             locs = []
             cnt = 0
@@ -365,11 +387,11 @@ class RegionsLocations(generics.GenericAPIView):
                     'id':cnt,
                     'name':loc
                 })
-            result.append({
+            result = {
                 'id': item['pk'],
-                'locations': [locs],
+                'locations': locs,
                 'name': item['fields']['name']
-            })
+            }
         return Response(result)
 
 #   LOCATION HANDLER
@@ -384,24 +406,25 @@ class LocationDetail(generics.GenericAPIView):
         locations = Locations.objects.filter(pk=pk)
         serialized_obj = serializers.serialize('json', locations)
 
-        result = []
         for item in json.loads(serialized_obj):
             locs = []
             cnt = 0
+            #
             for loc in json.loads(item['fields']['areas']):
                 cnt += 1
+                availables = Available.objects.filter(name=loc)
                 locs.append({
                     'id':cnt,
                     'name':loc,
-                    'pokemon_count':len(json.loads(item['fields']['pokemons'])),
+                    'pokemon_count':len(json.loads(serializers.serialize('json', availables))),
                     'location':pk
                 })
-            result.append({
+            result = {
                 'id': item['pk'],
-                'areas': [locs],
+                'areas': locs,
                 'name': item['fields']['name'],
                 'region':Region.objects.get(name=Locations.objects.get(name=item['fields']['name']).region).id
-            })
+            }
         return Response(result)
 
 #   AREA HANDLER
@@ -416,8 +439,6 @@ class AreaDetail(generics.GenericAPIView):
         availables = Available.objects.filter(pk=pk)
         serialized_obj = serializers.serialize('json', availables)
 
-        #locations = Locations.objects.filter(pk=availables.location_id)
-        result = []
         for item in json.loads(serialized_obj):
             pokes = []
             cnt = 0
@@ -428,12 +449,12 @@ class AreaDetail(generics.GenericAPIView):
                     'name':Pokemon.objects.get(name=poke.capitalize()).name,
                     'sprites':Pokemon.objects.get(name=poke.capitalize()).sprites
                 })
-            result.append({
+            result = {
                 'id':pk,
                 'pokemon_count': len(json.loads(item['fields']['pokemons'])),
-                'pokemons': [pokes],
+                'pokemons': pokes,
                 'name': item['fields']['name'],
                 'location':Locations.objects.get(name=item['fields']['location']).id
-            })
+            }
         return Response(result)
 

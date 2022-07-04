@@ -7,10 +7,11 @@ from .views import PokemonViewSet, PokemonStorage, PokemonEdit, PokemonParty,Pok
 
 
 route = routers.DefaultRouter()
-route.register(r'pokemons/', PokemonViewSet)
+#route.register(r'pokemons/<int:pk>', PokemonViewSet)
 
 #   CUSTOM ENDPOINTS
 urlpatterns = path('login/',Login.as_view()),
+urlpatterns += path('pokemons/<int:pk>/', PokemonViewSet.as_view()),
 urlpatterns += path('pokemons/own/', PokemonStorage.as_view()),
 urlpatterns += path('pokemons/own/<int:pk>/', PokemonEdit.as_view()),
 urlpatterns += path('pokemons/own/party/', PokemonParty.as_view()),

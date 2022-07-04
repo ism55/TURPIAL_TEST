@@ -48,7 +48,7 @@ You need Python 3.7 which you find here: https://www.python.org/downloads/releas
 
 Remember to install pip also and setup environment variables. 
 
-Just in casae, be sure you can run virtual python environments to run this project.
+Just in case, be sure you can run virtual python environments to run this project.
 
 ## Virtual environment
 
